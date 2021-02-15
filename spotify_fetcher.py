@@ -53,10 +53,63 @@ def write_json_file(logger, file, python_dic):
     logger.info('JSON file written: %s' % (file, ))
 
 
+def get_all_tokens(logger, spotify_env):
+    '''
+    Exchanges the code authorized by the user by a set of tokens.
+    N.B. This request should only be used once!
+    The user codes are only valid one time, after that use 'refresh_access_token'
+    Reference: https://developer.spotify.com/documentation/general/guides/authorization-guide/
+
+    Parameters
+    ----------
+    logger: logging object
+        logger of the script
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
+    '''
+    # Building the request
+    url = 'https://accounts.spotify.com/api/token'
+    payload = {
+        'grant_type': 'authorization_code',
+        'code': spotify_env['user_code'],
+        'redirect_uri': spotify_env['redirect_uri']
+    }
+    # Getting my own credentials encoded into Base64
+    encode_credentials = '%s:%s' % (spotify_env['client_id'],
+                                    spotify_env['client_secret'])
+    encoded_credentials_bytes = base64.b64encode(encode_credentials.encode('ascii'))
+    encoded_credentials_message = encoded_credentials_bytes.decode('ascii')
+
+    headers = {
+      'Authorization': 'Basic %s' % (encoded_credentials_message, )
+    }
+
+    # Sending the request
+    logger.debug(('Sending the request..\n'
+                  'URL: %s'
+                  'Headers: %s\n'
+                  'Payload: %s\n') % (url,
+                                      json.dumps(headers, indent=1),
+                                      json.dumps(payload, indent=1)))
+    response = requests.post(url, headers=headers, data=payload)
+    if response.status_code == 200:
+        response_dic = response.json()
+        # Renewing the 'access_token'
+        # Using the fact that the dictionaries are immutable
+        # we don't return anything
+        spotify_env['access_token'] = response_dic['access_token']
+        spotify_env['refresh_token'] = response_dic['refresh_token']
+        logger.debug(json.dumps(response_dic, indent=1))
+        logger.info('Spotify token renewed!')
+    else:
+        logger.error(response.content)
+        raise ValueError('Something went wrong with the getting the token!')
+
+
 def refresh_access_token(logger, spotify_env):
     '''
     Refreshes the current Spotify 'access_token' using the 'refresh_token'
-    I sitll have not yet seen if the 'refresh_token' fails.
+    If it's the firs time getting the tokens use 'get_all_tokens'
     Reference: https://developer.spotify.com/documentation/general/guides/authorization-guide/
 
     Parameters
@@ -97,6 +150,9 @@ def refresh_access_token(logger, spotify_env):
         # we don't return anything
         spotify_env['access_token'] = response_dic['access_token']
         logger.info('Spotify token renewed!')
+    else:
+        logger.error(response.content)
+        raise ValueError('Something went wrong with the refresing the token!')
 
 
 def get_list_playlists(logger, spotify_env):
@@ -122,7 +178,7 @@ def get_list_playlists(logger, spotify_env):
       'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
     }
 
-    # The API does not return the complet list of playlists in one go
+    # The API does not return the complete list of playlists in one go
     # It keeps returning offsets and the url to the next chunk.
     # At the final offset there's a parameter set to none
     playlists = []
@@ -136,6 +192,7 @@ def get_list_playlists(logger, spotify_env):
         if response.status_code == 200:
             response_dic = response.json()
         else:
+            logger.error(response.content)
             raise ValueError('Something went wrong with the playlist request!')
 
         # Parses the respone. Get the url for the next chunk
@@ -153,13 +210,73 @@ def get_list_playlists(logger, spotify_env):
             'num_of_tracks': playlist['tracks']['total']
         }
         summary_of_playlists.append(playlist_summary)
-    logger.info('Finished parsing the playlists!')
+    logger.info('Finished parsing the playlists! Total: %d' % (len(summary_of_playlists, )))
 
     return summary_of_playlists
 
 
-def get_favorites_playlist(logger, spotify_env):
-    url = "https://api.spotify.com/v1/playlists/%s" % (spotify_env['my_favorites_playlist_id'], )
+def get_saved_tracks(logger, spotify_env):
+    '''
+    Gets all the saved songs in my library
+    Reference: https://developer.spotify.com/documentation/web-api/reference/#category-library
+
+    Parameters
+    ----------
+    logger: logging object
+        logger of the script
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
+
+    Returns
+    -------
+    list of dicts
+        The parsed response from the API with the relevant information
+    '''
+    # Building the request
+    url = "https://api.spotify.com/v1/me/tracks"
+
+    headers = {
+      'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
+    }
+
+    # The API does not return the complete list of playlists in one go
+    # It keeps returning offsets and the url to the next chunk.
+    # At the final offset there's a parameter set to none
+    tracks = []
+    while url is not None:
+        # Sending the request
+        logger.debug(('Sending the request..\n'
+                      'URL: %s'
+                      'Headers: %s\n') % (url,
+                                          json.dumps(headers, indent=1)))
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            response_dic = response.json()
+        else:
+            logger.error(response.content)
+            raise ValueError('Something went wrong with the songs request!')
+
+        # Parses the respone. Get the url for the next chunk
+        url = response_dic['next']
+        # Append this chunk to what we already have
+        tracks += response_dic['items']
+
+    # Only get the data relevant to us
+    summary_of_tracks = []
+    for track in tracks:
+        playlist_summary = {
+            'name': track['track']['name'],
+            'artist': [artist['name'] for artist in track['track']['artists']],
+            'album': track['track']['album']['name']
+        }
+        summary_of_tracks.append(playlist_summary)
+    logger.info('Finished parsing the saved tracks! Total: %d' % (len(summary_of_tracks, )))
+
+    return summary_of_tracks
+
+
+def get_songs_playlist(logger, spotify_env, playlist_id):
+    url = "https://api.spotify.com/v1/playlists/%s" % (playlist_id, )
 
     headers = {
       'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
@@ -168,7 +285,6 @@ def get_favorites_playlist(logger, spotify_env):
     counter = 0
     tracks = []
     while url is not None:
-        response_dic = {}
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             response_dic = response.json()
@@ -221,18 +337,33 @@ if __name__ == "__main__":
         env_file = os.path.join(curr_dir, 'spotify_env.json')
         spotify_env = open_json_file(logger, env_file)
 
+        # Get all the required tokens
+        # get_all_tokens(logger, spotify_env)
+
         # Refresh the access token before doing anything
         refresh_access_token(logger, spotify_env)
+
+        # Get the current date
+        now_time = datetime.datetime.now()
+
+        # Get all my saved songs
+        summary_of_songs = get_saved_tracks(logger, spotify_env)
 
         # Get all my playlists
         # summary_of_playlists = get_list_playlists(logger, spotify_env)
 
-        # Get my saved songs
-        get_favorites_playlist(logger, spotify_env)
+        # Get songs from a playlist
+        # get_songs_playlist(logger, spotify_env)
 
         # Write the results for getting all my playlists
-        # all_playlists_file = os.path.join(out_dir_path, 'all_my_playlists.json')
+        # all_playlists_file = os.path.join(out_dir_path,
+        #                                   now_time.strftime('all_my_playlists_%Y-%m-%d-%H:%M.json'))
         # write_json_file(logger, all_playlists_file, summary_of_playlists)
+
+        # Write the results for getting all my playlists
+        all_saved_songs_file = os.path.join(out_dir_path,
+                                            now_time.strftime('all_my_songs_%Y-%m-%d-%H:%M.json'))
+        write_json_file(logger, all_saved_songs_file, summary_of_songs)
 
         # Writes again the Spotify environment with the new token.
         write_json_file(logger, env_file, spotify_env)
