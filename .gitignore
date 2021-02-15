@@ -1,0 +1,8 @@
+__pycache__
+
+env
+*.txt
+*.log
+results
+spotify_env.py
+*.json
