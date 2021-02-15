@@ -1,7 +1,10 @@
 __pycache__
 
 env
+
 *.txt
+!requirements.txt
+
 *.log
 results
 spotify_env.py
