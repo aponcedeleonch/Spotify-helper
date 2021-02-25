@@ -9,3 +9,5 @@ env
 results
 spotify_env.py
 *.json
+
+*.pyc

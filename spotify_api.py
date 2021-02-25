@@ -80,6 +80,7 @@ def get_saved_tracks(logger, spotify_env):
         The parsed response from the API with the relevant information
     '''
     # Building the request
+    logger.info('Get saved tracks!')
     url = "https://api.spotify.com/v1/me/tracks"
 
     headers = {
@@ -114,12 +115,14 @@ def get_saved_tracks(logger, spotify_env):
     for track in tracks:
         playlist_summary = {
             'name': track['track']['name'],
-            'artist': [artist['name'] for artist in track['track']['artists']],
-            'album': track['track']['album']['name']
+            'artist': ["%s. ID: %s" % (artist['name'], artist['id'])
+                       for artist in track['track']['artists']],
+            'album': track['track']['album']['name'],
+            'album_id': track['track']['album']['id']
         }
         track_id = track['track']['id']
         summary_of_tracks[track_id] = playlist_summary
         total_tracks += 1
-    logger.info('Finished parsing the saved tracks! Total: %d' % (total_tracks, ))
+    logger.info('Finished getting the saved tracks! Total: %d' % (total_tracks, ))
 
     return summary_of_tracks
