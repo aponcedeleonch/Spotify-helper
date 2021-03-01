@@ -1,5 +1,6 @@
 import requests
 import json
+import datetime
 
 
 def get_list_playlists(logger, spotify_env):
@@ -32,9 +33,9 @@ def get_list_playlists(logger, spotify_env):
     while url is not None:
         # Sending the request
         logger.debug(('Sending the request..\n'
-                      'URL: %s'
-                      'Headers: %s\n') % (url,
-                                          json.dumps(headers, indent=1)))
+                      'URL: %s\n'
+                      'Headers: %s') % (url,
+                                        json.dumps(headers, indent=1)))
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             response_dic = response.json()
@@ -94,9 +95,9 @@ def get_saved_tracks(logger, spotify_env):
     while url is not None:
         # Sending the request
         logger.debug(('Sending the request..\n'
-                      'URL: %s'
-                      'Headers: %s\n') % (url,
-                                          json.dumps(headers, indent=1)))
+                      'URL: %s\n'
+                      'Headers: %s') % (url,
+                                        json.dumps(headers, indent=1)))
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             response_dic = response.json()
@@ -118,11 +119,43 @@ def get_saved_tracks(logger, spotify_env):
             'artist': ["%s. ID: %s" % (artist['name'], artist['id'])
                        for artist in track['track']['artists']],
             'album': track['track']['album']['name'],
-            'album_id': track['track']['album']['id']
+            'album_id': track['track']['album']['id'],
+            'uri': track['track']['uri'],
+            'no_of_plays': 0
         }
         track_id = track['track']['id']
         summary_of_tracks[track_id] = playlist_summary
         total_tracks += 1
+    now_time = datetime.datetime.now()
+    summary_of_tracks['updated_at'] = now_time.strftime('%d-%m-%Y')
     logger.info('Finished getting the saved tracks! Total: %d' % (total_tracks, ))
 
     return summary_of_tracks
+
+
+def add_song_to_queue(logger, spotify_env, uri_song):
+    # Building the request
+    logger.info('Adding song to queue!. URI: %s' % (uri_song, ))
+    url = "https://api.spotify.com/v1/me/player/queue"
+
+    headers = {
+      'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
+    }
+    payload = {
+        'uri': uri_song
+    }
+    logger.debug(('Sending the request..\n'
+                  'URL: %s\n'
+                  'Headers: %s\n'
+                  'Query params: %s\n') % (url,
+                                           json.dumps(headers, indent=1),
+                                           json.dumps(payload, indent=1)))
+    response = requests.post(url, headers=headers, params=payload)
+
+    if response.status_code != 204:
+        logger.error(response.content)
+        logger.error('Something went wrong with adding song to the queue!')
+        return uri_song
+
+    logger.debug(response.content)
+    logger.info('Song added to the queue. URI: %s' % (uri_song, ))

@@ -5,7 +5,7 @@ import requests
 
 def get_all_tokens(logger, spotify_env):
     '''
-    Exchanges the code authorized by the user by a set of tokens.
+    Exchanges the user_code authorized by the user by a set of tokens.
     N.B. This request should only be used once!
     The user codes are only valid one time, after that use 'refresh_access_token'
     Reference: https://developer.spotify.com/documentation/general/guides/authorization-guide/
@@ -60,7 +60,7 @@ def get_all_tokens(logger, spotify_env):
 def refresh_access_token(logger, spotify_env):
     '''
     Refreshes the current Spotify 'access_token' using the 'refresh_token'
-    If it's the firs time getting the tokens use 'get_all_tokens'
+    If it's the first time getting the tokens use 'get_all_tokens'
     Reference: https://developer.spotify.com/documentation/general/guides/authorization-guide/
 
     Parameters
@@ -104,4 +104,4 @@ def refresh_access_token(logger, spotify_env):
         logger.info('Spotify token renewed!')
     else:
         logger.error(response.content)
-        raise ValueError('Something went wrong with the refresing the token!')
+        raise ValueError('Something went wrong with refresing the token!')
