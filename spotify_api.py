@@ -1,6 +1,7 @@
 import requests
 import json
 import datetime
+import spotify_security
 
 
 def get_list_playlists(logger, spotify_env):
@@ -20,6 +21,14 @@ def get_list_playlists(logger, spotify_env):
     list of dicts
         The parsed response from the API with the relevant information
     '''
+    try:
+        # Refresh the access token before doing anything
+        spotify_security.refresh_access_token(logger, spotify_env)
+    except ValueError:
+        logger.info('Could not refresh access token. Try to get new one')
+        # Maybe we havent exchanged the user_code. Try to exchange for tokens
+        spotify_security.get_all_tokens(logger, spotify_env)
+
     # Builds the request
     url = "https://api.spotify.com/v1/users/%s/playlists" % (spotify_env['spotify_user_id'], )
     headers = {
@@ -80,10 +89,18 @@ def get_saved_tracks(logger, spotify_env):
     list of dicts
         The parsed response from the API with the relevant information
     '''
-    # Building the request
     logger.info('Get saved tracks!')
-    url = "https://api.spotify.com/v1/me/tracks"
 
+    try:
+        # Refresh the access token before doing anything
+        spotify_security.refresh_access_token(logger, spotify_env)
+    except ValueError:
+        logger.info('Could not refresh access token. Try to get new one')
+        # Maybe we havent exchanged the user_code. Try to exchange for tokens
+        spotify_security.get_all_tokens(logger, spotify_env)
+
+    # Building the request
+    url = "https://api.spotify.com/v1/me/tracks"
     headers = {
       'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
     }
@@ -134,10 +151,18 @@ def get_saved_tracks(logger, spotify_env):
 
 
 def add_song_to_queue(logger, spotify_env, uri_song):
-    # Building the request
     logger.info('Adding song to queue!. URI: %s' % (uri_song, ))
-    url = "https://api.spotify.com/v1/me/player/queue"
 
+    try:
+        # Refresh the access token before doing anything
+        spotify_security.refresh_access_token(logger, spotify_env)
+    except ValueError:
+        logger.info('Could not refresh access token. Try to get new one')
+        # Maybe we havent exchanged the user_code. Try to exchange for tokens
+        spotify_security.get_all_tokens(logger, spotify_env)
+
+    # Building the request
+    url = "https://api.spotify.com/v1/me/player/queue"
     headers = {
       'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
     }
@@ -159,3 +184,79 @@ def add_song_to_queue(logger, spotify_env, uri_song):
 
     logger.debug(response.content)
     logger.info('Song added to the queue. URI: %s' % (uri_song, ))
+
+
+def get_recently_played(logger, spotify_env, number_songs):
+    logger.info('Checking recently played songs!')
+
+    try:
+        # Refresh the access token before doing anything
+        spotify_security.refresh_access_token(logger, spotify_env)
+    except ValueError:
+        logger.info('Could not refresh access token. Try to get new one')
+        # Maybe we havent exchanged the user_code. Try to exchange for tokens
+        spotify_security.get_all_tokens(logger, spotify_env)
+
+    # Building the request
+    url = "https://api.spotify.com/v1/me/player/recently-played"
+    bearer_string = 'Bearer %s' % (spotify_env['access_token'], )
+    headers = {
+      'Authorization': bearer_string,
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    }
+    payload = {
+        'limit': number_songs
+    }
+    logger.debug(('Sending the request..\n'
+                  'URL: %s\n'
+                  'Headers: %s\n'
+                  'Query params: %s') % (url,
+                                         json.dumps(headers, indent=1),
+                                         json.dumps(payload, indent=1)))
+    response = requests.get(url, headers=headers, params=payload)
+
+    if response.status_code != 200:
+        logger.error(response.content)
+        raise ValueError('Something went wrong getting recently played songs!')
+
+    played_songs = []
+    response_dic = response.json()
+    played_songs = response_dic['items']
+    while len(played_songs) < number_songs and response_dic['next'] is not None:
+        logger.debug('Getting more songs. Gotten: %d' % (len(played_songs)))
+
+        url = response_dic['next']
+        logger.debug(('Sending the request..\n'
+                      'URL: %s\n'
+                      'Headers: %s') % (url,
+                                        json.dumps(headers, indent=1)))
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            response_dic = response.json()
+        else:
+            logger.error(response.content)
+            raise ValueError('Something went wrong getting recently played songs!')
+
+        new_songs = response_dic['items']
+        logger.debug('New songs gotten: %d' % (len(new_songs), ))
+        played_songs += new_songs
+
+    # Only get the data relevant to us
+    total_tracks = 0
+    summary_of_tracks = {}
+    for track in played_songs:
+        track_summary = {
+            'name': track['track']['name'],
+            'artist': ["%s. ID: %s" % (artist['name'], artist['id'])
+                       for artist in track['track']['artists']],
+            'album': track['track']['album']['name'],
+            'album_id': track['track']['album']['id'],
+            'uri': track['track']['uri']
+        }
+        track_id = track['track']['id']
+        summary_of_tracks[track_id] = track_summary
+        total_tracks += 1
+    logger.info('Got %d recently played tracks.' % (total_tracks, ))
+
+    return summary_of_tracks
