@@ -197,6 +197,10 @@ def get_recently_played(logger, spotify_env, number_songs):
         # Maybe we havent exchanged the user_code. Try to exchange for tokens
         spotify_security.get_all_tokens(logger, spotify_env)
 
+    if number_songs > 50:
+        number_get_songs = 50
+    else:
+        number_get_songs = number_songs
     # Building the request
     url = "https://api.spotify.com/v1/me/player/recently-played"
     bearer_string = 'Bearer %s' % (spotify_env['access_token'], )
@@ -206,7 +210,7 @@ def get_recently_played(logger, spotify_env, number_songs):
       "Accept": "application/json"
     }
     payload = {
-        'limit': number_songs
+        'limit': number_get_songs
     }
     logger.debug(('Sending the request..\n'
                   'URL: %s\n'

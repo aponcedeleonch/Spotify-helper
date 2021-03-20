@@ -1,13 +1,17 @@
-__pycache__
-
+# Virtual enviornment
 env
 
+# Local stuff and keys
 *.txt
 !requirements.txt
-
 *.log*
 results
 spotify_env.py
 *.json
 
+# Python stuff
 *.pyc
+__pycache__
+
+# Ignore MAC stuff
+.DS_Store
