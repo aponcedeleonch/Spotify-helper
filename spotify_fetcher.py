@@ -252,9 +252,13 @@ def play_random_saved_songs(results_dir, spotify_env_file,
 def diff_recently_played(curr_recently_played, spotify_env_file, number_songs):
     logger = logging.getLogger('spotify')
     logger.info('Getting differences in recently played songs')
-    recently_played = get_recently_played_songs(logger=logger,
-                                                spotify_env_file=spotify_env_file,
+
+    # Temporarily change level to avoid unwanted logging of function
+    orig_log_level = logger.getEffectiveLevel()
+    logger.setLevel(logging.WARNING)
+    recently_played = get_recently_played_songs(spotify_env_file=spotify_env_file,
                                                 number_songs=number_songs)
+    logger.setLevel(orig_log_level)
 
     ids_last_recently = set(curr_recently_played.keys())
     ids_new_recently = set(recently_played.keys())
