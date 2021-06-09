@@ -1,24 +1,24 @@
 import os
 import sys
-import random
 import time
 import json
 import datetime
 import logging
-from logging import handlers
+import logging.config
 import argparse
 import glob
 import utils
 import spotify_api
 
 
-def download_saved_tracks(logger, results_dir, spotify_env_file):
+def download_saved_tracks(results_dir, spotify_env_file):
+    logger = logging.getLogger('spotify')
     logger.info('Downloading saved tracks!')
     # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(logger, spotify_env_file)
+    spotify_env = utils.open_json_file(spotify_env_file)
 
     # Get all my saved songs
-    summary_of_songs = spotify_api.get_saved_tracks(logger, spotify_env)
+    summary_of_songs = spotify_api.get_saved_tracks(spotify_env)
 
     # Creating a directory for the results of the script
     os.makedirs(results_dir, exist_ok=True)
@@ -29,7 +29,7 @@ def download_saved_tracks(logger, results_dir, spotify_env_file):
                                         spotify_env['all_songs_filename'])
     if os.path.isfile(all_saved_songs_file):
         logger.debug('File %s exists. Updating!' % (all_saved_songs_file, ))
-        all_saved_songs = utils.open_json_file(logger, all_saved_songs_file)
+        all_saved_songs = utils.open_json_file(all_saved_songs_file)
         for old_song_id, old_song_data in all_saved_songs.items():
             if old_song_id == "updated_at":
                 continue
@@ -39,19 +39,20 @@ def download_saved_tracks(logger, results_dir, spotify_env_file):
         logger.debug('File %s does not exist. Creating!' % (all_saved_songs_file, ))
 
     # Writes the new or updated songs
-    utils.write_json_file(logger, all_saved_songs_file, summary_of_songs)
+    utils.write_json_file(all_saved_songs_file, summary_of_songs)
 
     # Writes again the Spotify environment with the new token.
-    utils.write_json_file(logger, spotify_env_file, spotify_env)
+    utils.write_json_file(spotify_env_file, spotify_env)
 
     logger.info('Downloaded saved tracks at: %s' % (all_saved_songs_file, ))
     return summary_of_songs
 
 
-def compare_saved_tracks(logger, results_dir, spotify_env_file):
+def compare_saved_tracks(results_dir, spotify_env_file):
+    logger = logging.getLogger('spotify')
     logger.info('Comparing saved tracks')
     # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(logger, spotify_env_file)
+    spotify_env = utils.open_json_file(spotify_env_file)
 
     match_pattern = results_dir + '/diff_songs_*.json'
     diff_songs_path = glob.glob(match_pattern)
@@ -63,7 +64,7 @@ def compare_saved_tracks(logger, results_dir, spotify_env_file):
         logger.info('Cannot do diff! There are no past saved songs!')
         return
 
-    last_saved_songs = utils.open_json_file(logger, last_saved_songs_path)
+    last_saved_songs = utils.open_json_file(last_saved_songs_path)
 
     last_saved_time = datetime.datetime(year=1994, month=1, day=1)
     for diff_path in diff_songs_path:
@@ -110,20 +111,21 @@ def compare_saved_tracks(logger, results_dir, spotify_env_file):
 
     diff_songs_file = os.path.join(results_dir,
                                    now_time.strftime('diff_songs_%Y-%m-%d-%H:%M.json'))
-    utils.write_json_file(logger, diff_songs_file, diff_dict)
+    utils.write_json_file(diff_songs_file, diff_dict)
     logger.info('Finished comparing songs file! File written: %s' % (diff_songs_file, ))
 
     # Writes again the Spotify environment with the new token.
-    utils.write_json_file(logger, spotify_env_file, spotify_env)
+    utils.write_json_file(spotify_env_file, spotify_env)
 
     return diff_songs_file
 
 
-def play_random_saved_songs(logger, results_dir, spotify_env_file,
+def play_random_saved_songs(results_dir, spotify_env_file,
                             sleep_time_seconds=180, song_limit=300,
                             refresh_time=7, check_recently=40):
+    logger = logging.getLogger('spotify')
     # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(logger, spotify_env_file)
+    spotify_env = utils.open_json_file(spotify_env_file)
 
     # Try to get the list of songs in my library
     saved_songs_path = os.path.join(results_dir,
@@ -131,13 +133,12 @@ def play_random_saved_songs(logger, results_dir, spotify_env_file,
     # There is no saved songs file, creating one
     if not os.path.isfile(saved_songs_path):
         logger.info('There are no past saved songs! Getting the list.')
-        saved_songs = download_saved_tracks(logger=logger,
-                                            results_dir=results_dir,
+        saved_songs = download_saved_tracks(results_dir=results_dir,
                                             spotify_env_file=spotify_env_file)
     # Saved songs found
     else:
         logger.debug('Saved songs file exists. Checking update time.')
-        saved_songs = utils.open_json_file(logger, saved_songs_path)
+        saved_songs = utils.open_json_file(saved_songs_path)
         last_update_songs = datetime.datetime.strptime(saved_songs['updated_at'],
                                                        '%d-%m-%Y')
         now_time = datetime.datetime.now()
@@ -155,7 +156,12 @@ def play_random_saved_songs(logger, results_dir, spotify_env_file,
     number_plays = [saved_songs[id_song]['no_of_plays'] for id_song in id_song_list]
     song_weights_unorm = [float(play) for play in number_plays]
     max_weight = max(song_weights_unorm)
-    song_weights = [1 - weight/max_weight for weight in song_weights_unorm]
+    if max_weight == 0:
+        song_weights = [1]*len(song_weights_unorm)
+    else:
+        song_weights = [1 - weight/max_weight for weight in song_weights_unorm]
+
+    ids_to_play = utils.random_all_songs(id_song_list, song_weights, saved_songs)
 
     total_played_songs = {}
     played_songs = []
@@ -164,50 +170,32 @@ def play_random_saved_songs(logger, results_dir, spotify_env_file,
     while True:
         # Try to catch KeyboardInterrupt for exiting the program
         try:
-            # Getting a song that hasnt been played recently
-            while True:
-                chosen_id_song = random.choices(id_song_list, weights=song_weights, k=1)[0]
-                # The song has not been played recently. Exiting inner while
-                if chosen_id_song not in played_songs:
-                    break
-                # The song has been played recently. Choosing new one.
+            for id_song in ids_to_play:
+                # Get the data of the song with the ID
+                chosen_song = saved_songs[id_song]
+
+                # Try to add the song to the queue
+                response = spotify_api.add_song_to_queue(spotify_env,
+                                                         chosen_song['uri'])
+
+                # Something went wrong when playing this song, check later
+                if response is not None:
+                    logger.error('Error adding song to the queue:\n%s' % (json.dumps(chosen_song, indent=1), ))
+                    error_songs.append(id_song)
                 else:
-                    # Sleep to try to reset the random of python
-                    time.sleep(1)
-            # Get the data of the song with the ID
-            chosen_song = saved_songs[chosen_id_song]
-            # Make the call of the Spotify API
-            logger.info('Adding song to the queue:\n%s' % (json.dumps(chosen_song, indent=1), ))
+                    # Make the call of the Spotify API
+                    logger.debug('Adding song to the queue:\n%s' % (json.dumps(chosen_song, indent=1), ))
 
-            # Try to add the song to the queue
-            response = spotify_api.add_song_to_queue(logger,
-                                                     spotify_env,
-                                                     chosen_song['uri'])
-
-            # Something went wrong when playing this song, check later
-            if response is not None:
-                error_songs.append(chosen_id_song)
-                continue
-
-            played_songs.append(chosen_id_song)
-            # Keep only the last song_limit songs
-            played_songs = played_songs[-song_limit:]
-
-            # Saving the data of the chosen song
-            total_played_songs[chosen_id_song] = chosen_song
+                # Sleep for a certain amount of time before choosing new song
+                # time.sleep(sleep_time_seconds)
 
             # If we have played 'check_recently' songs download the list
             # of recently played songs according to Spotify
             # Ideally 'check_recently' < 50 since that is the limit for Spotify
-            num_total_played_songs = len(total_played_songs.keys())
-            if num_total_played_songs % check_recently == 0:
-                curr_recently_played = diff_recently_played(logger=logger,
-                                                            curr_recently_played=curr_recently_played,
-                                                            spotify_env_file=spotify_env_file,
-                                                            number_songs=check_recently+5)
-
-            # Sleep for a certain amount of time before choosing new song
-            time.sleep(sleep_time_seconds)
+            curr_recently_played = diff_recently_played(logger=logger,
+                                                        curr_recently_played=curr_recently_played,
+                                                        spotify_env_file=spotify_env_file,
+                                                        number_songs=check_recently+5)
         # Exiting the script
         except KeyboardInterrupt:
             logger.info('Interrupting adding songs to the queue!')
@@ -242,10 +230,10 @@ def play_random_saved_songs(logger, results_dir, spotify_env_file,
                                     'Probably from song not in saved songs?') % (song_id, ))
 
             # Writes the updated songs with the counters before finishing
-            utils.write_json_file(logger, saved_songs_path, saved_songs)
+            utils.write_json_file(saved_songs_path, saved_songs)
 
             # Writes again the Spotify environment with the new token.
-            utils.write_json_file(logger, spotify_env_file, spotify_env)
+            utils.write_json_file(spotify_env_file, spotify_env)
             logger.info('Finished to write new values to files.')
 
             logger.info('\n\nNumber of songs sent by the script: %d\n'
@@ -259,8 +247,8 @@ def play_random_saved_songs(logger, results_dir, spotify_env_file,
             break
 
 
-def diff_recently_played(logger, curr_recently_played,
-                         spotify_env_file, number_songs):
+def diff_recently_played(curr_recently_played, spotify_env_file, number_songs):
+    logger = logging.getLogger('spotify')
     logger.info('Getting differences in recently played songs')
     recently_played = get_recently_played_songs(logger=logger,
                                                 spotify_env_file=spotify_env_file,
@@ -280,22 +268,20 @@ def diff_recently_played(logger, curr_recently_played,
     return curr_recently_played
 
 
-def get_recently_played_songs(logger, spotify_env_file, number_songs,
+def get_recently_played_songs(spotify_env_file, number_songs,
                               log_level='DEBUG'):
+    logger = logging.getLogger('spotify')
     logger.info('Getting recently played %d songs' % (number_songs, ))
     # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(logger, spotify_env_file)
+    spotify_env = utils.open_json_file(spotify_env_file)
 
-    recently_played = spotify_api.get_recently_played(logger=logger,
-                                                      spotify_env=spotify_env,
+    recently_played = spotify_api.get_recently_played(spotify_env=spotify_env,
                                                       number_songs=number_songs)
-    if log_level == 'DEBUG':
-        logger.debug('Recently played songs: %s' % (json.dumps(recently_played, indent=1)))
-    else:
-        logger.info('Recently played songs: %s' % (json.dumps(recently_played, indent=1)))
+    logger.info('Recently played songs: %s' % (json.dumps(recently_played,
+                                                          indent=1)))
 
     # Writes again the Spotify environment with the new token.
-    utils.write_json_file(logger, spotify_env_file, spotify_env)
+    utils.write_json_file(spotify_env_file, spotify_env)
     logger.info('Finished to write new values to files.')
 
     return recently_played
@@ -324,7 +310,7 @@ def parse_args(args=sys.argv[1:]):
     # Arguments for logging
     parser.add_argument("--log_file", "-lf", type=str,
                         default="logs_spotify_fetcher.log",
-                        help="Name of the log file of the main process.")
+                        help="Name of the log file.")
 
     parser.add_argument("--log_level", "-ll", type=str,
                         default="INFO",
@@ -334,45 +320,60 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args)
 
 
+def configure_logger(log_level, log_file):
+    log_config = { 
+        'version': 1,
+        'formatters': { 
+            'standard': { 
+                'format': '%(asctime)s %(levelname)s: %(message)s',
+                'datefmt': '%m/%d/%Y %H:%M:%S'
+            },
+        },
+        'handlers': { 
+            'console': { 
+                'formatter': 'standard',
+                'class': 'logging.StreamHandler',
+            },
+            'file': {
+                'formatter': 'standard',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': log_file,
+                'maxBytes': 100e6,
+                'backupCount': 3
+            }
+        },
+        'loggers': { 
+            'spotify': { 
+                'handlers': ['console', 'file'],
+                'level': log_level
+            }
+        } 
+    }
+    logging.config.dictConfig(log_config)
+
+
 if __name__ == "__main__":
     start_time = time.time()
     args = parse_args()
 
-    numeric_log_level = getattr(logging, args.log_level, None)
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)s: %(message)s',
-        datefmt='%m/%d/%Y %H:%M:%S %p',
-        level=numeric_log_level,
-        handlers=[
-            # Max store 300MB of logs
-            handlers.RotatingFileHandler(args.log_file,
-                                         maxBytes=100e6,
-                                         backupCount=3),
-            logging.StreamHandler()
-        ]
-    )
-    logger = logging.getLogger()
+    configure_logger(args.log_level, args.log_file)
+    logger = logging.getLogger('spotify')
     logger.info('Logger ready. Logging to file: %s' % (args.log_file))
 
     # Starting with the tasks (main loop)
     try:
         if args.action == 'saved_tracks':
-            download_saved_tracks(logger=logger,
-                                  results_dir=args.results_dir,
+            download_saved_tracks(results_dir=args.results_dir,
                                   spotify_env_file=args.spotify_env_file)
         elif args.action == 'compare_saved_tracks':
-            compare_saved_tracks(logger=logger,
-                                 results_dir=args.results_dir,
+            compare_saved_tracks(results_dir=args.results_dir,
                                  spotify_env_file=args.spotify_env_file)
         elif args.action == 'play_random_saved_songs':
-            play_random_saved_songs(logger=logger,
-                                    results_dir=args.results_dir,
+            play_random_saved_songs(results_dir=args.results_dir,
                                     spotify_env_file=args.spotify_env_file,
                                     sleep_time_seconds=60)
         elif args.action == 'get_recently_played_songs':
-            get_recently_played_songs(logger=logger,
-                                      spotify_env_file=args.spotify_env_file,
-                                      log_level='INFO')
+            get_recently_played_songs(spotify_env_file=args.spotify_env_file)
         else:
             logger.error('The selected option is not available!')
     except Exception:

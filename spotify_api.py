@@ -1,10 +1,11 @@
+import logging
 import requests
 import json
 import datetime
 import spotify_security
 
 
-def get_list_playlists(logger, spotify_env):
+def get_list_playlists(spotify_env):
     '''
     Gets all my created playlists and returns only the relevant information
     Reference: https://developer.spotify.com/documentation/web-api/reference/#category-playlists
@@ -21,13 +22,14 @@ def get_list_playlists(logger, spotify_env):
     list of dicts
         The parsed response from the API with the relevant information
     '''
+    logger = logging.getLogger('spotify')
     try:
         # Refresh the access token before doing anything
-        spotify_security.refresh_access_token(logger, spotify_env)
+        spotify_security.refresh_access_token(spotify_env)
     except ValueError:
         logger.info('Could not refresh access token. Try to get new one')
         # Maybe we havent exchanged the user_code. Try to exchange for tokens
-        spotify_security.get_all_tokens(logger, spotify_env)
+        spotify_security.get_all_tokens(spotify_env)
 
     # Builds the request
     url = "https://api.spotify.com/v1/users/%s/playlists" % (spotify_env['spotify_user_id'], )
@@ -72,7 +74,7 @@ def get_list_playlists(logger, spotify_env):
     return summary_of_playlists
 
 
-def get_saved_tracks(logger, spotify_env):
+def get_saved_tracks(spotify_env):
     '''
     Gets all the saved songs in my library
     Reference: https://developer.spotify.com/documentation/web-api/reference/#category-library
@@ -89,15 +91,16 @@ def get_saved_tracks(logger, spotify_env):
     list of dicts
         The parsed response from the API with the relevant information
     '''
+    logger = logging.getLogger('spotify')
     logger.info('Get saved tracks!')
 
     try:
         # Refresh the access token before doing anything
-        spotify_security.refresh_access_token(logger, spotify_env)
+        spotify_security.refresh_access_token(spotify_env)
     except ValueError:
         logger.info('Could not refresh access token. Try to get new one')
         # Maybe we havent exchanged the user_code. Try to exchange for tokens
-        spotify_security.get_all_tokens(logger, spotify_env)
+        spotify_security.get_all_tokens(spotify_env)
 
     # Building the request
     url = "https://api.spotify.com/v1/me/tracks"
@@ -133,8 +136,8 @@ def get_saved_tracks(logger, spotify_env):
     for track in tracks:
         playlist_summary = {
             'name': track['track']['name'],
-            'artist': ["%s. ID: %s" % (artist['name'], artist['id'])
-                       for artist in track['track']['artists']],
+            'artists': {artist['id']: artist['name']
+                        for artist in track['track']['artists']},
             'album': track['track']['album']['name'],
             'album_id': track['track']['album']['id'],
             'uri': track['track']['uri'],
@@ -145,21 +148,23 @@ def get_saved_tracks(logger, spotify_env):
         total_tracks += 1
     now_time = datetime.datetime.now()
     summary_of_tracks['updated_at'] = now_time.strftime('%d-%m-%Y')
+    logger.debug(json.dumps(summary_of_tracks, indent=1))
     logger.info('Finished getting the saved tracks! Total: %d' % (total_tracks, ))
 
     return summary_of_tracks
 
 
-def add_song_to_queue(logger, spotify_env, uri_song):
+def add_song_to_queue(spotify_env, uri_song):
+    logger = logging.getLogger('spotify')
     logger.info('Adding song to queue!. URI: %s' % (uri_song, ))
 
     try:
         # Refresh the access token before doing anything
-        spotify_security.refresh_access_token(logger, spotify_env)
+        spotify_security.refresh_access_token(spotify_env)
     except ValueError:
         logger.info('Could not refresh access token. Try to get new one')
         # Maybe we havent exchanged the user_code. Try to exchange for tokens
-        spotify_security.get_all_tokens(logger, spotify_env)
+        spotify_security.get_all_tokens(spotify_env)
 
     # Building the request
     url = "https://api.spotify.com/v1/me/player/queue"
@@ -186,16 +191,17 @@ def add_song_to_queue(logger, spotify_env, uri_song):
     logger.info('Song added to the queue. URI: %s' % (uri_song, ))
 
 
-def get_recently_played(logger, spotify_env, number_songs):
+def get_recently_played(spotify_env, number_songs):
+    logger = logging.getLogger('spotify')
     logger.info('Checking recently played songs!')
 
     try:
         # Refresh the access token before doing anything
-        spotify_security.refresh_access_token(logger, spotify_env)
+        spotify_security.refresh_access_token(spotify_env)
     except ValueError:
         logger.info('Could not refresh access token. Try to get new one')
         # Maybe we havent exchanged the user_code. Try to exchange for tokens
-        spotify_security.get_all_tokens(logger, spotify_env)
+        spotify_security.get_all_tokens(spotify_env)
 
     if number_songs > 50:
         number_get_songs = 50

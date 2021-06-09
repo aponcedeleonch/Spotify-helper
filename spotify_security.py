@@ -1,9 +1,10 @@
+import logging
 import base64
 import json
 import requests
 
 
-def get_all_tokens(logger, spotify_env):
+def get_all_tokens(spotify_env):
     '''
     Exchanges the user_code authorized by the user by a set of tokens.
     N.B. This request should only be used once!
@@ -18,6 +19,7 @@ def get_all_tokens(logger, spotify_env):
         Dictionary containing own Spotify keys, tokens, etc.
     '''
     # Building the request
+    logger = logging.getLogger('spotify')
     logger.info('Getting the token for API')
     url = 'https://accounts.spotify.com/api/token'
     payload = {
@@ -54,10 +56,10 @@ def get_all_tokens(logger, spotify_env):
         logger.info('Spotify token obtained!')
     else:
         logger.error(response.content)
-        raise ValueError('Something went wrong with the getting the token!')
+        raise ValueError('Something went wrong with getting the token!')
 
 
-def refresh_access_token(logger, spotify_env):
+def refresh_access_token(spotify_env):
     '''
     Refreshes the current Spotify 'access_token' using the 'refresh_token'
     If it's the first time getting the tokens use 'get_all_tokens'
@@ -71,6 +73,7 @@ def refresh_access_token(logger, spotify_env):
         Dictionary containing own Spotify keys, tokens, etc.
     '''
     # Building the request
+    logger = logging.getLogger('spotify')
     logger.info('Refreshing the API token')
     url = 'https://accounts.spotify.com/api/token'
     payload = {
