@@ -50,23 +50,8 @@ def write_json_file(file, python_dic):
     logger.info('JSON file written: %s' % (file, ))
 
 
-def weighted_sample_without_replacement(population, weights, k=1):
-    weights = list(weights)
-    positions = range(len(population))
-    indices = []
-    while True:
-        needed = k - len(indices)
-        if not needed:
-            break
-        for i in choices(positions, weights, k=needed):
-            if weights[i]:
-                weights[i] = 0.0
-                indices.append(i)
-    return [population[i] for i in indices]
-
-
 def random_all_songs(id_song_list, song_weights, songs_dictionary,
-                     repeat_artist=20):
+                     repeat_artist):
     logger = logging.getLogger('spotify')
     logger.info('Randomizing all songs!')
     # Making sure all weights > 0
@@ -78,7 +63,9 @@ def random_all_songs(id_song_list, song_weights, songs_dictionary,
 
     randomized_ids = []
     # Get a dictionary with the position of every id_song in the list
+    # This is done as a hasing dictionary to then access quickly to position
     positions = {id_song: i for i, id_song in enumerate(id_song_list)}
+
     recently_played_artists = []
     # Until we have picked all the available songs
     while len(randomized_ids) != len(id_song_list):
@@ -88,20 +75,57 @@ def random_all_songs(id_song_list, song_weights, songs_dictionary,
         if chosen_id not in randomized_ids:
             # Get the artists of the song
             chosen_artists = list(songs_dictionary[chosen_id]['artists'].keys())
+
             # Make sure the artists are not in the recently played artists
             for artist in chosen_artists:
+                # If they are continue and choose another song
                 if artist in recently_played_artists:
                     continue
-            # The song and artists are ok
-            # Add the artsits to the recently played
+
+            # The song and artists are ok. Add the artsits to recently played
             recently_played_artists += chosen_artists
+
             # Shorten the recently played artist list.
             # Only check the last repeat_artist
             recently_played_artists = recently_played_artists[-repeat_artist:]
+
             # Add the id to the list of ids
             randomized_ids.append(chosen_id)
+
             # Set the weight to zero so in the next iteration is not picked
             song_weights[positions[chosen_id]] = 0
 
     logger.info('Finished randomization, returning randomized songs!')
     return randomized_ids
+
+
+def configure_logger(log_level, log_file):
+    log_config = { 
+        'version': 1,
+        'formatters': { 
+            'standard': { 
+                'format': '%(asctime)s %(levelname)s: %(message)s',
+                'datefmt': '%m/%d/%Y %H:%M:%S'
+            },
+        },
+        'handlers': { 
+            'console': { 
+                'formatter': 'standard',
+                'class': 'logging.StreamHandler',
+            },
+            'file': {
+                'formatter': 'standard',
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': log_file,
+                'maxBytes': 100e6,
+                'backupCount': 3
+            }
+        },
+        'loggers': { 
+            'spotify': { 
+                'handlers': ['console', 'file'],
+                'level': log_level
+            }
+        } 
+    }
+    logging.config.dictConfig(log_config)

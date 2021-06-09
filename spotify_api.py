@@ -1,7 +1,6 @@
 import logging
 import requests
 import json
-import datetime
 import spotify_security
 
 
