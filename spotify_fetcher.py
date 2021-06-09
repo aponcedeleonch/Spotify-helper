@@ -306,7 +306,8 @@ def parse_args(args=sys.argv[1:]):
     
     parser.add_argument("--results_dir", "-rd", type=str,
                         default='results',
-                        help="Name of the directory to store the results.")
+                        help=("Name of the directory to store the results."
+                              "The specified dir path is relative to this file."))
 
     parser.add_argument("--spotify_env_file", "-se", type=str,
                         default='spotify_env.json',
@@ -363,8 +364,10 @@ def spotify_fetcher(action, results_dir, spotify_env_file,
 
     configure_logger(log_level, log_file)
     logger = logging.getLogger('spotify')
-    logger.info('Logger ready. Logging to file: %s' % (args.log_file))
+    logger.info('Logger ready. Logging to file: %s' % (log_file))
 
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    results_dir = os.path.join(dir_path, results_dir)
     # Starting with the tasks (main loop)
     try:
         if action == 'saved_tracks':
@@ -395,6 +398,6 @@ if __name__ == "__main__":
     spotify_fetcher(action=args.action,
                     spotify_env_file=args.spotify_env_file,
                     log_level=args.log_level,
-                    log_file=args.log_level,
+                    log_file=args.log_file,
                     results_dir=args.results_dir,
                     all_songs_file=args.all_songs_file)
