@@ -49,24 +49,23 @@ def download_saved_tracks(all_songs_file, results_dir, spotify_env_file):
     return summary_of_songs
 
 
-def compare_saved_tracks(results_dir, spotify_env_file):
+def compare_saved_tracks(all_songs_file, results_dir, spotify_env_file):
     logger = logging.getLogger('spotify')
     logger.info('Comparing saved tracks')
     # Get my Spotify credentials and variables
     spotify_env = utils.open_json_file(spotify_env_file)
 
+    last_saved_songs_path = os.path.join(results_dir, all_songs_file)
+    if not os.path.isfile(last_saved_songs_path):
+        logger.info('Cannot do diff! There are no past saved songs!')
+        return
+    last_saved_songs = utils.open_json_file(last_saved_songs_path)
+
     match_pattern = results_dir + '/diff_songs_*.json'
     diff_songs_path = glob.glob(match_pattern)
     logger.debug('Looking songs with path: %s' % (diff_songs_path, ))
 
-    last_saved_songs_path = os.path.join(results_dir,
-                                         spotify_env['all_songs_filename'])
-    if not os.path.isfile(last_saved_songs_path):
-        logger.info('Cannot do diff! There are no past saved songs!')
-        return
-
-    last_saved_songs = utils.open_json_file(last_saved_songs_path)
-
+    # Initializing last_saved_time to random old time
     last_saved_time = datetime.datetime(year=1994, month=1, day=1)
     for diff_path in diff_songs_path:
         diff_file = diff_path.split('/')[-1]
@@ -75,11 +74,13 @@ def compare_saved_tracks(results_dir, spotify_env_file):
         logger.debug('Checking date of file: %s' % (diff_path, ))
         if saved_time > last_saved_time:
             last_saved_time = saved_time
-
-    logger.info('Last diff time: %s' % (last_saved_time, ))
+    if last_saved_time == datetime.datetime(year=1994, month=1, day=1):
+        logger.info('This is the first diff of saved songs.')
+    else:
+        logger.info('Last diff time: %s' % (last_saved_time, ))
 
     logger.debug('Checking for new songs!')
-    new_saved_songs = download_saved_tracks(logger=logger,
+    new_saved_songs = download_saved_tracks(all_songs_file=all_songs_file,
                                             results_dir=results_dir,
                                             spotify_env_file=spotify_env_file)
     logger.debug('New songs and last saved songs gotten!')
@@ -96,7 +97,7 @@ def compare_saved_tracks(results_dir, spotify_env_file):
     now_time = datetime.datetime.now()
     diff_dict = {
         'last_checked_time': str(last_saved_time),
-        'checked_time': str(now_time),
+        'now_checked_time': str(now_time),
         'diff_songs': {
             'lost_songs': {},
             'new_songs': {}
@@ -375,7 +376,8 @@ def spotify_fetcher(action, results_dir, spotify_env_file,
                                   results_dir=results_dir,
                                   spotify_env_file=spotify_env_file)
         elif action == 'compare_saved_tracks':
-            compare_saved_tracks(results_dir=results_dir,
+            compare_saved_tracks(all_songs_file=all_songs_file,
+                                 results_dir=results_dir,
                                  spotify_env_file=spotify_env_file)
         elif action == 'play_random_saved_songs':
             play_random_saved_songs(results_dir=results_dir,
