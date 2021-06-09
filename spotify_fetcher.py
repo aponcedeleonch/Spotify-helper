@@ -352,7 +352,7 @@ def configure_logger(log_level, log_file):
     logging.config.dictConfig(log_config)
 
 
-if __name__ == "__main__":
+def spotify_fetcher():
     start_time = time.time()
     args = parse_args()
 
@@ -382,3 +382,7 @@ if __name__ == "__main__":
         elapsed_time = time.time() - start_time
         elapsed_delta = datetime.timedelta(seconds=elapsed_time)
         logger.info('Total elapsed time of execution: %s' % (elapsed_delta, ))
+
+
+if __name__ == "__main__":
+    spotify_fetcher()
