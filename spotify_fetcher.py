@@ -11,7 +11,7 @@ import utils
 import spotify_api
 
 
-def download_saved_tracks(results_dir, spotify_env_file):
+def download_saved_tracks(all_songs_file, results_dir, spotify_env_file):
     logger = logging.getLogger('spotify')
     logger.info('Downloading saved tracks!')
     # Get my Spotify credentials and variables
@@ -24,20 +24,21 @@ def download_saved_tracks(results_dir, spotify_env_file):
     os.makedirs(results_dir, exist_ok=True)
     logger.debug('Created dir for results: %s' % results_dir)
 
-    # Write the results for getting all my playlists
-    all_saved_songs_file = os.path.join(results_dir,
-                                        spotify_env['all_songs_filename'])
+    # Write the results for getting all saved songs
+    all_saved_songs_file = os.path.join(results_dir, all_songs_file)
     if os.path.isfile(all_saved_songs_file):
-        logger.debug('File %s exists. Updating!' % (all_saved_songs_file, ))
+        logger.info('File %s exists. Updating!' % (all_saved_songs_file, ))
         all_saved_songs = utils.open_json_file(all_saved_songs_file)
         for old_song_id, old_song_data in all_saved_songs.items():
-            if old_song_id == "updated_at":
-                continue
             if old_song_id in summary_of_songs:
                 summary_of_songs[old_song_id]['no_of_plays'] = old_song_data['no_of_plays']
     else:
-        logger.debug('File %s does not exist. Creating!' % (all_saved_songs_file, ))
+        logger.info('File %s does not exist. Creating!' % (all_saved_songs_file, ))
 
+    # Updating the last date we downloaded the data
+    now_time = datetime.datetime.now()
+    spotify_env['saved_songs_updated_at'] = now_time.strftime('%d-%m-%Y')
+    
     # Writes the new or updated songs
     utils.write_json_file(all_saved_songs_file, summary_of_songs)
 
@@ -299,6 +300,10 @@ def parse_args(args=sys.argv[1:]):
                                  'get_recently_played_songs'],
                         help="Choose the action to perform with the script.")
 
+    parser.add_argument("--all_songs_file", "-sf", type=str,
+                        default='all_my_songs.json',
+                        help="Name of the file to save the saved songs.")
+    
     parser.add_argument("--results_dir", "-rd", type=str,
                         default='results',
                         help="Name of the directory to store the results.")
@@ -353,7 +358,7 @@ def configure_logger(log_level, log_file):
 
 
 def spotify_fetcher(action, results_dir, spotify_env_file,
-                    log_level, log_file):
+                    log_level, log_file, all_songs_file):
     start_time = time.time()
 
     configure_logger(log_level, log_file)
@@ -363,7 +368,8 @@ def spotify_fetcher(action, results_dir, spotify_env_file,
     # Starting with the tasks (main loop)
     try:
         if action == 'saved_tracks':
-            download_saved_tracks(results_dir=results_dir,
+            download_saved_tracks(all_songs_file=all_songs_file,
+                                  results_dir=results_dir,
                                   spotify_env_file=spotify_env_file)
         elif action == 'compare_saved_tracks':
             compare_saved_tracks(results_dir=results_dir,
@@ -390,4 +396,5 @@ if __name__ == "__main__":
                     spotify_env_file=args.spotify_env_file,
                     log_level=args.log_level,
                     log_file=args.log_level,
-                    results_dir=args.results_dir)
+                    results_dir=args.results_dir,
+                    all_songs_file=args.all_songs_file)

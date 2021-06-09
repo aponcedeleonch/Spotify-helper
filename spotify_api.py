@@ -92,7 +92,7 @@ def get_saved_tracks(spotify_env):
         The parsed response from the API with the relevant information
     '''
     logger = logging.getLogger('spotify')
-    logger.info('Get saved tracks!')
+    logger.info('Getting saved tracks!')
 
     try:
         # Refresh the access token before doing anything
@@ -134,7 +134,7 @@ def get_saved_tracks(spotify_env):
     total_tracks = 0
     summary_of_tracks = {}
     for track in tracks:
-        playlist_summary = {
+        track_summary = {
             'name': track['track']['name'],
             'artists': {artist['id']: artist['name']
                         for artist in track['track']['artists']},
@@ -144,12 +144,9 @@ def get_saved_tracks(spotify_env):
             'no_of_plays': 0
         }
         track_id = track['track']['id']
-        summary_of_tracks[track_id] = playlist_summary
+        summary_of_tracks[track_id] = track_summary
         total_tracks += 1
-    now_time = datetime.datetime.now()
-    summary_of_tracks['updated_at'] = now_time.strftime('%d-%m-%Y')
-    logger.debug(json.dumps(summary_of_tracks, indent=1))
-    logger.info('Finished getting the saved tracks! Total: %d' % (total_tracks, ))
+    logger.info('Finished getting saved tracks! Total: %d' % (total_tracks, ))
 
     return summary_of_tracks
 
