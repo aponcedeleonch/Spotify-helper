@@ -352,28 +352,28 @@ def configure_logger(log_level, log_file):
     logging.config.dictConfig(log_config)
 
 
-def spotify_fetcher():
+def spotify_fetcher(action, results_dir, spotify_env_file,
+                    log_level, log_file):
     start_time = time.time()
-    args = parse_args()
 
-    configure_logger(args.log_level, args.log_file)
+    configure_logger(log_level, log_file)
     logger = logging.getLogger('spotify')
     logger.info('Logger ready. Logging to file: %s' % (args.log_file))
 
     # Starting with the tasks (main loop)
     try:
-        if args.action == 'saved_tracks':
-            download_saved_tracks(results_dir=args.results_dir,
-                                  spotify_env_file=args.spotify_env_file)
-        elif args.action == 'compare_saved_tracks':
-            compare_saved_tracks(results_dir=args.results_dir,
-                                 spotify_env_file=args.spotify_env_file)
-        elif args.action == 'play_random_saved_songs':
-            play_random_saved_songs(results_dir=args.results_dir,
-                                    spotify_env_file=args.spotify_env_file,
+        if action == 'saved_tracks':
+            download_saved_tracks(results_dir=results_dir,
+                                  spotify_env_file=spotify_env_file)
+        elif action == 'compare_saved_tracks':
+            compare_saved_tracks(results_dir=results_dir,
+                                 spotify_env_file=spotify_env_file)
+        elif action == 'play_random_saved_songs':
+            play_random_saved_songs(results_dir=results_dir,
+                                    spotify_env_file=spotify_env_file,
                                     sleep_time_seconds=60)
-        elif args.action == 'get_recently_played_songs':
-            get_recently_played_songs(spotify_env_file=args.spotify_env_file)
+        elif action == 'get_recently_played_songs':
+            get_recently_played_songs(spotify_env_file=spotify_env_file)
         else:
             logger.error('The selected option is not available!')
     except Exception:
@@ -385,4 +385,9 @@ def spotify_fetcher():
 
 
 if __name__ == "__main__":
-    spotify_fetcher()
+    args = parse_args()
+    spotify_fetcher(action=args.action,
+                    spotify_env_file=args.spotify_env_file,
+                    log_level=args.log_level,
+                    log_file=args.log_level,
+                    results_dir=args.results_dir)
