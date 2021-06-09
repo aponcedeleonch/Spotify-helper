@@ -270,9 +270,12 @@ def diff_recently_played(curr_recently_played, spotify_env_file, number_songs):
     return curr_recently_played
 
 
-def get_recently_played_songs(spotify_env_file, number_songs,
-                              log_level='DEBUG'):
+def get_recently_played_songs(spotify_env_file, number_songs=None):
     logger = logging.getLogger('spotify')
+
+    # Maximum number of songs in spotify history
+    if number_songs is None:
+        number_songs = 50
     logger.info('Getting recently played %d songs' % (number_songs, ))
     # Get my Spotify credentials and variables
     spotify_env = utils.open_json_file(spotify_env_file)
