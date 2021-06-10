@@ -104,7 +104,7 @@ def configure_logger(log_level, log_file):
         'version': 1,
         'formatters': { 
             'standard': { 
-                'format': '%(asctime)s %(funcName)s-%(levelname)s: %(message)s',
+                'format': '%(asctime)s %(funcName)20s-%(levelname)5s: %(message)s',
                 'datefmt': '%m/%d/%Y %H:%M:%S'
             },
         },

@@ -114,7 +114,9 @@ def compare_saved_songs(all_songs_file, results_dir, spotify_env_file):
     diff_songs_file = os.path.join(results_dir,
                                    now_time.strftime('diff_songs_%Y-%m-%d-%H:%M.json'))
     utils.write_json_file(diff_songs_file, diff_dict)
-    logger.info('Finished comparing songs file! File written: %s' % (diff_songs_file, ))
+    logger.info(
+        'Finished comparing songs file! File written: %s' % (diff_songs_file, )
+    )
 
     # Writes again the Spotify environment with the new token.
     utils.write_json_file(spotify_env_file, spotify_env)
@@ -141,21 +143,26 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
     else:
         logger.debug('Saved songs file exists. Checking update time.')
         saved_songs = utils.open_json_file(saved_songs_path)
-        last_update_songs = datetime.datetime.strptime(spotify_env['saved_songs_updated_at'],
-                                                       '%d-%m-%Y')
+        last_update_songs = datetime.datetime.strptime(
+                                spotify_env['saved_songs_updated_at'],
+                                '%d-%m-%Y'
+                            )
         now_time = datetime.datetime.now()
         check_update_songs = last_update_songs + datetime.timedelta(days=refresh_time)
         # Refreshing list of saved songs
         if now_time > check_update_songs:
             logger.info('Too long since last update of songs. Updating!')
-            saved_songs = download_saved_songs(all_songs_file=all_songs_file,
-                                               results_dir=results_dir,
-                                               spotify_env_file=spotify_env_file)
+            saved_songs = download_saved_songs(
+                            all_songs_file=all_songs_file,
+                            results_dir=results_dir,
+                            spotify_env_file=spotify_env_file
+                        )
     logger.info('Saved songs gotten!')
 
     # Get the ids and weights for each song. To choose with a weight in player
     id_song_list = [id_song for id_song in saved_songs.keys()]
-    number_plays = [saved_songs[id_song]['no_of_plays'] for id_song in id_song_list]
+    number_plays = [saved_songs[id_song]['no_of_plays']
+                    for id_song in id_song_list]
     song_weights_unorm = [float(play) for play in number_plays]
     max_weight = max(song_weights_unorm)
     if max_weight == 0:
@@ -183,13 +190,19 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
                                                  chosen_song['uri'])
         # Something went wrong when playing this song, check later
         if response is not None:
-            logger.error('Error adding song to the queue:\n%s' % (json.dumps(chosen_song,
-                                                                             indent=1), ))
+            logger.error(
+                'Error adding song to the queue:\n%s' % (json.dumps(
+                                                            chosen_song,
+                                                            indent=1
+                                                        ), )
+            )
             error_songs.append(id_song)
         else:
             # Make the call of the Spotify API
-            logger.info('Adding song to the queue:\n%s' % (json.dumps(chosen_song,
-                                                                      indent=1), ))
+            logger.info(
+                'Adding song to the queue:\n%s' % (json.dumps(chosen_song,
+                                                              indent=1), )
+            )
             programmed_songs.append(id_song)
 
         id_ran += 1
@@ -250,11 +263,13 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
         utils.write_json_file(spotify_env_file, spotify_env)
         logger.info('Finished to write new values to files.')
 
-        logger.info('\n\nNumber of songs sent by the script: %d\n'
-                    'Number of not detected played songs: %d\n'
-                    'Number of songs with error in API: %d\n' % (num_play_songs,
-                                                                 len(programmed_songs),
-                                                                 len(error_songs)))
+        logger.info(
+            '\n\nNumber of songs sent by the script: %d\n'
+            'Number of not detected played songs: %d\n'
+            'Number of songs with error in API: %d\n' % (num_play_songs,
+                                                         len(programmed_songs),
+                                                         len(error_songs))
+        )
         logger.info('Closing player, bye!')
 
 
@@ -265,8 +280,10 @@ def check_recently_played(spotify_env_file, programmed_songs, saved_songs):
     # Temporarily change level to avoid unwanted logging of function
     orig_log_level = logger.getEffectiveLevel()
     logger.setLevel(logging.WARNING)
-    recently_played = get_recently_played_songs(spotify_env_file=spotify_env_file,
-                                                number_songs=50)
+    recently_played = get_recently_played_songs(
+                        spotify_env_file=spotify_env_file,
+                        number_songs=50
+                    )
     logger.setLevel(orig_log_level)
 
     iter_programmed_songs = list(programmed_songs)
@@ -301,8 +318,10 @@ def get_recently_played_songs(spotify_env_file, number_songs=None):
     # Get my Spotify credentials and variables
     spotify_env = utils.open_json_file(spotify_env_file)
 
-    recently_played = spotify_api.get_recently_played(spotify_env=spotify_env,
-                                                      number_songs=number_songs)
+    recently_played = spotify_api.get_recently_played(
+                        spotify_env=spotify_env,
+                        number_songs=number_songs
+                    )
     logger.info('Recently played songs: %s' % (json.dumps(recently_played,
                                                           indent=1)))
 
@@ -315,62 +334,63 @@ def get_recently_played_songs(spotify_env_file, number_songs=None):
 
 # Parse script arguments
 def parse_args(args=sys.argv[1:]):
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-    parser.add_argument("--action", "-a", type=str,
-                        default="saved_tracks",
-                        choices=["download_saved_songs",
-                                 'compare_saved_songs',
-                                 'play_saved_songs',
-                                 'get_recently_played_songs'],
-                        help="Choose the action to perform with the script.")
-
-    parser.add_argument("--all_songs_file", "-sf", type=str,
-                        default='all_my_songs.json',
-                        help="Name of the file to save the saved songs.")
-
-    parser.add_argument("--refresh_time", "-rt", type=int,
-                        default=7,
-                        help=("Check if the saved songs were downloaded at "
-                              "most 'refresh_time' days back."))
-
-    parser.add_argument("--repeat_artist", "-ra", type=int,
-                        default=20,
-                        help=("Do not repeat an artist when playing saved "
-                              "songs in at least 'repeat_artist' songs."))
-
-    parser.add_argument("--num_play_songs", "-ns", type=int,
-                        default=100,
-                        help=("Play 'num_play_songs' when playing saved "
-                              "songs."))
-
-    parser.add_argument('--not_wait_songs_to_play', action='store_false',
-                        help=('If set the script will not wait for all '
-                              'programmed songs to play.'))
-
-    parser.add_argument("--sleep_time", "-st", type=float,
-                        default=5,
-                        help=("Sleep for 'sleep_time' minutes while waiting "
-                              "for all programmed songs to play."))
-    
-    parser.add_argument("--results_dir", "-rd", type=str,
-                        default='results',
-                        help=("Name of the directory to store the results."
-                              "The specified dir path is relative to this file."))
-
-    parser.add_argument("--spotify_env_file", "-se", type=str,
-                        default='spotify_env.json',
-                        help="Path to the file where the keys for Spotify are stored.")
-
+    parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
+    parser.add_argument(
+        "--action", "-a", type=str, default="play_saved_songs",
+        choices=["download_saved_songs",
+                 'compare_saved_songs',
+                 'play_saved_songs',
+                 'get_recently_played_songs'],
+        help="Choose the action to perform by the script."
+    )
+    parser.add_argument(
+        "--all_songs_file", "-sf", type=str, default='all_my_songs.json',
+        help="Name of the file to save the saved songs."
+    )
+    parser.add_argument(
+        "--refresh_time", "-rt", type=int, default=7,
+        help=("Check if the saved songs were downloaded at most 'refresh_time'"
+              " days back.")
+    )
+    parser.add_argument(
+        "--repeat_artist", "-ra", type=int, default=20,
+        help=("Do not repeat an artist when playing saved "
+              "songs in at least 'repeat_artist' songs.")
+    )
+    parser.add_argument(
+        "--num_play_songs", "-ns", type=int, default=100,
+        help="Play 'num_play_songs' when playing saved songs."
+    )
+    parser.add_argument(
+        '--not_wait_songs_to_play', action='store_false',
+        help='If set the script will not wait for programmed songs to play.'
+    )
+    parser.add_argument(
+        "--sleep_time", "-st", type=float, default=5,
+        help=("Sleep for 'sleep_time' minutes while waiting "
+              "for all programmed songs to play.")
+    )
+    parser.add_argument(
+        "--results_dir", "-rd", type=str, default='results',
+        help=("Name of the directory to store the results. The"
+              " specified dir path is relative to this file.")
+    )
+    parser.add_argument(
+        "--spotify_env_file", "-se", type=str, default='spotify_env.json',
+        help="Path to the file where the keys of Spotify are stored."
+    )
     # Arguments for logging
-    parser.add_argument("--log_file", "-lf", type=str,
-                        default="logs_spotify_fetcher.log",
-                        help="Name of the log file.")
-
-    parser.add_argument("--log_level", "-ll", type=str,
-                        default="INFO",
-                        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
-                        help="Set logging level.")
+    parser.add_argument(
+        "--log_file", "-lf", type=str, default="logs_spotify_fetcher.log",
+        help="Name of the log file."
+    )
+    parser.add_argument(
+        "--log_level", "-ll", type=str, default="INFO",
+        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        help="Set logging level."
+    )
 
     return parser.parse_args(args)
 
