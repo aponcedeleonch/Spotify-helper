@@ -290,19 +290,17 @@ def check_recently_played(spotify_env_file, programmed_songs, saved_songs):
     for song_id in iter_programmed_songs:
         if song_id in recently_played:
             logger.info(
-                'Detected programmed song that played:\n%s' % (json.dumps(
-                                                                saved_songs[song_id],
-                                                                indent=1
-                                                                ), )
+                'Detected programmed song that played:\n%s' % (
+                    json.dumps(saved_songs[song_id], indent=1), 
+                )
             )
             programmed_songs.remove(song_id)
             saved_songs[song_id]['no_of_plays'] += 1
         else:
             logger.debug(
-                'Song still not played:\n%s' % (json.dumps(
-                                                    saved_songs[song_id],
-                                                    indent=1
-                                                ),)
+                'Song still not played:\n%s' % (
+                    json.dumps(saved_songs[song_id], indent=1),
+                )
             )
 
     return programmed_songs
@@ -383,7 +381,7 @@ def parse_args(args=sys.argv[1:]):
     )
     # Arguments for logging
     parser.add_argument(
-        "--log_file", "-lf", type=str, default="logs_spotify_fetcher.log",
+        "--log_file", "-lf", type=str, default="logs_spotify_helper.log",
         help="Name of the log file."
     )
     parser.add_argument(
@@ -395,9 +393,9 @@ def parse_args(args=sys.argv[1:]):
     return parser.parse_args(args)
 
 
-def spotify_fetcher(action, results_dir, spotify_env_file, refresh_time,
-                    log_level, log_file, all_songs_file, repeat_artist,
-                    not_wait_songs_to_play, num_play_songs, sleep_time):
+def spotify_helper(action, results_dir, spotify_env_file, refresh_time,
+                   log_level, log_file, all_songs_file, repeat_artist,
+                   not_wait_songs_to_play, num_play_songs, sleep_time):
     start_time = time.time()
 
     utils.configure_logger(log_level, log_file)
@@ -439,7 +437,7 @@ def spotify_fetcher(action, results_dir, spotify_env_file, refresh_time,
 
 if __name__ == "__main__":
     args = parse_args()
-    spotify_fetcher(action=args.action,
+    spotify_helper(action=args.action,
                     spotify_env_file=args.spotify_env_file,
                     log_level=args.log_level,
                     log_file=args.log_file,

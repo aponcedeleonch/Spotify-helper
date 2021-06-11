@@ -100,11 +100,12 @@ def random_all_songs(id_song_list, song_weights, songs_dictionary,
 
 
 def configure_logger(log_level, log_file):
+    str_format = '%(asctime)s %(filename)s - %(funcName)s %(levelname)5s: %(message)s'
     log_config = { 
         'version': 1,
         'formatters': { 
             'standard': { 
-                'format': '%(asctime)s %(funcName)20s-%(levelname)5s: %(message)s',
+                'format': str_format,
                 'datefmt': '%m/%d/%Y %H:%M:%S'
             },
         },
