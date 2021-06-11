@@ -42,6 +42,8 @@ By default the script will try to send to the queue 100 songs with the following
 ```sh
 python spotify_helper.py -a play_saved_songs
 ```
+**Note**: Before you ran this command you need to have an active Spotify session, in other words, be playing a song at some device. The songs added to the queue by this command will get added to the queue of your active device.
+
 
 You can adjust the number of songs you want to send to the queue with the parameter. `--num_play_songs`, e.g.
 ```sh
@@ -57,6 +59,8 @@ If you want to supress completely the waiting for a song to be played:
 ```sh
 python spotify_helper.py -a play_saved_songs --num_play_songs 10 --not_wait_songs_to_play
 ```
+
+To implement your own shuffle but still use the code on this repository the only thing you need to change is the function `random_all_songs` at file `utils.py`. Just in case my shuffle is also driving you crazy.
 
 Finally, to get some general usage of the script use:
 ```sh
@@ -127,3 +131,7 @@ I copy-pasted the following in a web browser:
 3. Now we can exchange the obtained `user_code` in the last step for a token to make requests to the Spotify API. The functions for this exchange is already implemented in the code of this repository in the file `spotify_api.py`. Now you can put all the **Valuable output** you obtained in a JSON file and run the available commands of the script. The format of the JSON file is specified at the [Requirements section](#requirements)
 
 General instructions from Spotify: https://developer.spotify.com/documentation/general/guides/authorization-guide/
+
+## Contributing
+
+Feel free to fork this repository, clone it, make a pull request, open an issue contact me by Twitter (@Ingenescu), email (aponcedeleonch@gmail.com), Linkedin (/aponcedeleonch) or whatever you want. Say thanks if you like it and if you would like some functionality added I don't promise I will do it but I promise to do my best effort :)
