@@ -160,23 +160,8 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
                         )
     logger.info('Saved songs gotten!')
 
-    # Get the ids and weights for each song. To choose with a weight in player
-    id_song_list = [id_song for id_song in saved_songs.keys()]
-    number_plays = [saved_songs[id_song]['no_of_plays']
-                    for id_song in id_song_list]
-    song_weights_unorm = [float(play) for play in number_plays]
-    max_weight = max(song_weights_unorm)
-    if max_weight == 0:
-        # All songs have 0 plays, assigning same weight for all
-        song_weights = [1]*len(song_weights_unorm)
-    else:
-        # Songs with more plays have more weight
-        song_weights = [1 - weight/max_weight for weight in song_weights_unorm]
-
     # Randomize the order of our saved songs and return the random ids
-    ids_to_play = utils.random_all_songs(id_song_list=id_song_list,
-                                         song_weights=song_weights,
-                                         songs_dictionary=saved_songs,
+    ids_to_play = utils.random_all_songs(songs_dictionary=saved_songs,
                                          repeat_artist=repeat_artist)
 
     error_songs = []
