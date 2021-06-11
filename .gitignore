@@ -6,7 +6,6 @@ env
 !requirements.txt
 *.log*
 results
-spotify_env.py
 *.json
 
 # Python stuff
