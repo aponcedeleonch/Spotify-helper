@@ -52,10 +52,10 @@ def security_get_token(spotify_env):
         spotify_env['access_token'] = response_dic['access_token']
         spotify_env['refresh_token'] = response_dic['refresh_token']
         logger.debug(json.dumps(response_dic, indent=1))
-        logger.info('Spotify token obtained!')
+        logger.info('Spotify token obtained')
     else:
         logger.error(response.content)
-        raise ValueError('Something went wrong with getting the token!')
+        raise ValueError('Something went wrong with getting the token')
 
 
 def security_refresh_token(spotify_env):
@@ -101,7 +101,7 @@ def security_refresh_token(spotify_env):
         # Using the fact that the dictionaries are immutable
         # we don't return anything
         spotify_env['access_token'] = response_dic['access_token']
-        logger.info('Spotify token renewed!')
+        logger.info('Spotify token renewed')
     else:
         logger.error(response.content)
         raise ValueError('Something went wrong with refresing the token!')
@@ -154,14 +154,14 @@ def get_list_playlists(spotify_env):
             response_dic = response.json()
         else:
             logger.error(response.content)
-            raise ValueError('Something went wrong with the playlist request!')
+            raise ValueError('Something went wrong with the playlist request')
 
         # Parses the respone. Get the url for the next chunk
         url = response_dic['next']
         # Append this chunk to what we already have
         playlists += response_dic['items']
     logger.info(
-        'Finished querying for playlists!. Total: %d' % (len(playlists), )
+        'Finished querying for playlists. Total: %d' % (len(playlists), )
     )
 
     # Only get the data relevant to us
@@ -174,7 +174,7 @@ def get_list_playlists(spotify_env):
         }
         summary_of_playlists.append(playlist_summary)
     logger.info(
-        'Finished parsing the playlists! Total: %d' % (len(summary_of_playlists), )
+        'Finished parsing the playlists. Total: %d' % (len(summary_of_playlists), )
     )
 
     return summary_of_playlists
@@ -196,7 +196,7 @@ def get_saved_tracks(spotify_env):
         Songs that are stored in our libary with only the relevant information.
     '''
     logger = logging.getLogger('spotify')
-    logger.info('Getting saved tracks!')
+    logger.info('Getting saved tracks')
 
     try:
         # Refresh the access token before doing anything
@@ -227,7 +227,7 @@ def get_saved_tracks(spotify_env):
             response_dic = response.json()
         else:
             logger.error(response.content)
-            raise ValueError('Something went wrong with the songs request!')
+            raise ValueError('Something went wrong with the songs request')
 
         # Parses the respone. Get the url for the next chunk
         url = response_dic['next']
@@ -250,7 +250,7 @@ def get_saved_tracks(spotify_env):
         track_id = track['track']['id']
         summary_of_tracks[track_id] = track_summary
         total_tracks += 1
-    logger.info('Finished getting saved tracks! Total: %d' % (total_tracks, ))
+    logger.info('Finished getting saved tracks. Total: %d' % (total_tracks, ))
 
     return summary_of_tracks
 
@@ -272,7 +272,7 @@ def add_song_to_queue(spotify_env, uri_song):
     None
     '''
     logger = logging.getLogger('spotify')
-    logger.info('Adding song to queue!. URI: %s' % (uri_song, ))
+    logger.info('Adding song to queue. URI: %s' % (uri_song, ))
 
     try:
         # Refresh the access token before doing anything
@@ -300,7 +300,7 @@ def add_song_to_queue(spotify_env, uri_song):
 
     if response.status_code != 204:
         logger.error(response.content)
-        logger.error('Something went wrong with adding song to the queue!')
+        logger.error('Something went wrong with adding song to the queue.')
         return uri_song
 
     logger.debug(response.content)
@@ -325,7 +325,7 @@ def get_recently_played(spotify_env, number_songs):
         The songs that have recently played
     '''
     logger = logging.getLogger('spotify')
-    logger.info('Checking recently played songs!')
+    logger.info('Checking recently played songs')
 
     try:
         # Refresh the access token before doing anything
@@ -360,7 +360,7 @@ def get_recently_played(spotify_env, number_songs):
 
     if response.status_code != 200:
         logger.error(response.content)
-        raise ValueError('Something went wrong getting recently played songs!')
+        raise ValueError('Something went wrong getting recently played songs')
 
     played_songs = []
     response_dic = response.json()

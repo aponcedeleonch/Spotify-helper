@@ -159,7 +159,7 @@ def configure_logger(log_level, log_file):
         'formatters': { 
             'standard': { 
                 'format': str_format,
-                'datefmt': '%m/%d/%Y %H:%M:%S'
+                'datefmt': '%d/%m/%Y %H:%M:%S'
             },
         },
         'handlers': { 

@@ -6,12 +6,11 @@ import datetime
 import logging
 import logging.config
 import argparse
-import glob
 import utils
 import spotify_api
 
 
-def download_saved_songs(all_songs_file, results_dir, spotify_env_file):
+def download_saved_songs(all_songs_file, results_dir, spotify_env):
     '''
     Checks the saved songs that we have in our library in Spotify and stores
     the metadata of the songs in a JSON file 'results_dir/all_songs_file'
@@ -22,8 +21,8 @@ def download_saved_songs(all_songs_file, results_dir, spotify_env_file):
         Name of the JSON file with the saved songs in our library
     results_dir : string
         Name of the folder to store a JSON with the saved songs
-    spotify_env_file : string
-        JSON file containing own Spotify keys, tokens, etc.
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
 
     Returns
     -------
@@ -31,9 +30,7 @@ def download_saved_songs(all_songs_file, results_dir, spotify_env_file):
         Dictionary containing the songs that we have in our library
     '''
     logger = logging.getLogger('spotify')
-    logger.info('Downloading saved tracks!')
-    # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(spotify_env_file)
+    logger.info('Downloading saved tracks')
 
     # Get all my saved songs
     summary_of_songs = spotify_api.get_saved_tracks(spotify_env)
@@ -45,14 +42,14 @@ def download_saved_songs(all_songs_file, results_dir, spotify_env_file):
     # Write the results for getting all saved songs
     all_saved_songs_file = os.path.join(results_dir, all_songs_file)
     if os.path.isfile(all_saved_songs_file):
-        logger.info('File %s exists. Updating!' % (all_saved_songs_file, ))
+        logger.info('File %s exists. Updating' % (all_saved_songs_file, ))
         # Not losing the counts of 'no_of_plays' of the previous stored file
         all_saved_songs = utils.open_json_file(all_saved_songs_file)
         for old_song_id, old_song_data in all_saved_songs.items():
             if old_song_id in summary_of_songs:
                 summary_of_songs[old_song_id]['no_of_plays'] = old_song_data['no_of_plays']
     else:
-        logger.info('File %s does not exist. Creating!' % (all_saved_songs_file, ))
+        logger.info('File %s does not exist. Creating' % (all_saved_songs_file, ))
 
     # Updating the last date we downloaded the data
     now_time = datetime.datetime.now()
@@ -61,14 +58,11 @@ def download_saved_songs(all_songs_file, results_dir, spotify_env_file):
     # Writes the new or updated songs
     utils.write_json_file(all_saved_songs_file, summary_of_songs)
 
-    # Writes again the Spotify environment with the new token.
-    utils.write_json_file(spotify_env_file, spotify_env)
-
     logger.info('Downloaded saved tracks at: %s' % (all_saved_songs_file, ))
     return summary_of_songs
 
 
-def compare_saved_songs(all_songs_file, results_dir, spotify_env_file):
+def compare_saved_songs(all_songs_file, results_dir, spotify_env):
     '''
     Checks for a previous JSON file of saved songs and gets the difference
     between the old one and the current one.
@@ -79,8 +73,8 @@ def compare_saved_songs(all_songs_file, results_dir, spotify_env_file):
         Name of the JSON file with the saved songs in our library
     results_dir : string
         Name of the folder where the JSON all_songs_file is stored
-    spotify_env_file : string
-        JSON file containing own Spotify keys, tokens, etc.
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
 
     Returns
     -------
@@ -89,21 +83,19 @@ def compare_saved_songs(all_songs_file, results_dir, spotify_env_file):
     '''
     logger = logging.getLogger('spotify')
     logger.info('Comparing saved tracks')
-    # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(spotify_env_file)
 
     # Trying to load an old all_songs_file JSON file
     last_saved_songs_path = os.path.join(results_dir, all_songs_file)
     if not os.path.isfile(last_saved_songs_path):
-        logger.info('Cannot do diff! There are no past saved songs!')
+        logger.info('Cannot do diff. There are no past saved songs')
         return
     last_saved_songs = utils.open_json_file(last_saved_songs_path)
 
-    logger.debug('Checking for new songs!')
+    logger.debug('Checking for new songs')
     new_saved_songs = download_saved_songs(all_songs_file=all_songs_file,
                                            results_dir=results_dir,
-                                           spotify_env_file=spotify_env_file)
-    logger.debug('New songs and last saved songs gotten!')
+                                           spotify_env=spotify_env)
+    logger.debug('New songs and last saved songs gotten')
 
     ids_last_songs = set(last_saved_songs.keys())
     ids_new_songs = set(new_saved_songs.keys())
@@ -136,16 +128,13 @@ def compare_saved_songs(all_songs_file, results_dir, spotify_env_file):
                                    now_time.strftime('diff_songs_%Y-%m-%d-%H:%M.json'))
     utils.write_json_file(diff_songs_file, diff_dict)
     logger.info(
-        'Finished comparing songs file! File written: %s' % (diff_songs_file, )
+        'Finished comparing songs file. File written: %s' % (diff_songs_file, )
     )
-
-    # Writes again the Spotify environment with the new token.
-    utils.write_json_file(spotify_env_file, spotify_env)
 
     return diff_songs_file
 
 
-def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
+def play_saved_songs(all_songs_file, results_dir, spotify_env,
                      refresh_time, repeat_artist, num_play_songs, sleep_time,
                      not_wait_songs_to_play):
     '''
@@ -196,17 +185,15 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
     None
     '''
     logger = logging.getLogger('spotify')
-    # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(spotify_env_file)
 
     # Try to get the list of songs in my library
     saved_songs_path = os.path.join(results_dir, all_songs_file)
     # There is no saved songs file, creating one
     if not os.path.isfile(saved_songs_path):
-        logger.info('There are no past saved songs! Getting the list.')
+        logger.info('There are no past saved songs. Getting the list.')
         saved_songs = download_saved_songs(all_songs_file=all_songs_file,
                                            results_dir=results_dir,
-                                           spotify_env_file=spotify_env_file)
+                                           spotify_env=spotify_env)
     # Saved songs found
     else:
         logger.debug('Saved songs file exists. Checking update time.')
@@ -219,13 +206,13 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
         check_update_songs = last_update_songs + datetime.timedelta(days=refresh_time)
         # Refreshing list of saved songs
         if now_time > check_update_songs:
-            logger.info('Too long since last update of songs. Updating!')
+            logger.info('Too long since last update of songs. Updating')
             saved_songs = download_saved_songs(
                             all_songs_file=all_songs_file,
                             results_dir=results_dir,
-                            spotify_env_file=spotify_env_file
+                            spotify_env=spotify_env
                         )
-    logger.info('Saved songs gotten!')
+    logger.info('Saved songs gotten')
 
     # Randomize the order of our saved songs and return the randomized ids
     ids_to_play = utils.random_all_songs(songs_dictionary=saved_songs,
@@ -293,7 +280,7 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
 
             # Check the recently played songs
             programmed_songs = check_recently_played(
-                                    spotify_env_file=spotify_env_file,
+                                    spotify_env=spotify_env,
                                     programmed_songs=programmed_songs,
                                     saved_songs=saved_songs
                                 )
@@ -307,7 +294,7 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
     finally:
         # Try to get all the songs that were played according to Spotify
         programmed_songs = check_recently_played(
-                                spotify_env_file=spotify_env_file,
+                                spotify_env=spotify_env,
                                 programmed_songs=programmed_songs,
                                 saved_songs=saved_songs
                             )
@@ -318,10 +305,7 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
 
         # Writes the updated songs with the counters before finishing
         utils.write_json_file(saved_songs_path, saved_songs)
-
-        # Writes again the Spotify environment with the new token.
-        utils.write_json_file(spotify_env_file, spotify_env)
-        logger.info('Finished to write new values to files.')
+        logger.info('Finished to write new values to file.')
 
         logger.info(
             '\n\nNumber of songs sent by the script: %d\n'
@@ -333,14 +317,14 @@ def play_saved_songs(all_songs_file, results_dir, spotify_env_file,
         logger.info('Closing player, bye! :)')
 
 
-def check_recently_played(spotify_env_file, programmed_songs, saved_songs):
+def check_recently_played(spotify_env, programmed_songs, saved_songs):
     '''
     Checks if the song that were sent to the queue have already played
 
     Parameters
     ----------
-    spotify_env_file : string
-        JSON file containing own Spotify keys, tokens, etc.
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
     programmed_songs : list
         List of song ids that were sent to the Spotify queue
     saved_songs : dict
@@ -359,7 +343,7 @@ def check_recently_played(spotify_env_file, programmed_songs, saved_songs):
     logger.setLevel(logging.WARNING)
     # Check for the songs that have recently played
     recently_played = get_recently_played_songs(
-                        spotify_env_file=spotify_env_file,
+                        spotify_env=spotify_env,
                         number_songs=50
                     )
     # Return logger to appropriate level
@@ -389,14 +373,14 @@ def check_recently_played(spotify_env_file, programmed_songs, saved_songs):
     return programmed_songs
 
 
-def get_recently_played_songs(spotify_env_file, number_songs=None):
+def get_recently_played_songs(spotify_env, number_songs=None):
     '''
     Gets the song that Spotify has recently played
 
     Parameters
     ----------
-    spotify_env_file : string
-        JSON file containing own Spotify keys, tokens, etc.
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
     number_songs : int
         Number of songs to look back in history. Max=50
 
@@ -411,8 +395,6 @@ def get_recently_played_songs(spotify_env_file, number_songs=None):
     if number_songs is None:
         number_songs = 50
     logger.info('Getting recently played %d songs' % (number_songs, ))
-    # Get my Spotify credentials and variables
-    spotify_env = utils.open_json_file(spotify_env_file)
 
     # Get the recently played songs
     recently_played = spotify_api.get_recently_played(
@@ -421,10 +403,6 @@ def get_recently_played_songs(spotify_env_file, number_songs=None):
                     )
     logger.info('Recently played songs: %s' % (json.dumps(recently_played,
                                                           indent=1)))
-
-    # Writes again the Spotify environment with the new token.
-    utils.write_json_file(spotify_env_file, spotify_env)
-    logger.info('Finished to write new values to files.')
 
     return recently_played
 
@@ -524,8 +502,7 @@ def spotify_helper(action, results_dir, spotify_env_file, refresh_time,
         Parameter used by actions: download_saved_songs, compare_saved_songs,
         play_saved_songs
     spotify_env_file : str
-        Parameter used by actions: download_saved_songs, compare_saved_songs,
-        play_saved_songs, get_recently_played_songs
+        JSON file containing own Spotify keys, tokens, etc.
     refresh_time : str
         Parameter used by actions: play_saved_songs
     log_level : str
@@ -560,32 +537,38 @@ def spotify_helper(action, results_dir, spotify_env_file, refresh_time,
     results_dir = os.path.join(dir_path, results_dir)
     spotify_env_file = os.path.join(dir_path, spotify_env_file)
 
+    # Get my Spotify credentials and variables
+    spotify_env = utils.open_json_file(spotify_env_file)
+
     # Starting with the actionn
     try:
         if action == 'download_saved_songs':
             download_saved_songs(all_songs_file=all_songs_file,
                                  results_dir=results_dir,
-                                 spotify_env_file=spotify_env_file)
+                                 spotify_env=spotify_env)
         elif action == 'compare_saved_songs':
             compare_saved_songs(all_songs_file=all_songs_file,
                                 results_dir=results_dir,
-                                spotify_env_file=spotify_env_file)
+                                spotify_env=spotify_env)
         elif action == 'play_saved_songs':
             play_saved_songs(all_songs_file=all_songs_file,
                              results_dir=results_dir,
-                             spotify_env_file=spotify_env_file,
+                             spotify_env=spotify_env,
                              refresh_time=refresh_time,
                              repeat_artist=repeat_artist,
                              num_play_songs=num_play_songs,
                              sleep_time=sleep_time,
                              not_wait_songs_to_play=not_wait_songs_to_play)
         elif action == 'get_recently_played_songs':
-            get_recently_played_songs(spotify_env_file=spotify_env_file)
+            get_recently_played_songs(spotify_env=spotify_env)
         else:
-            logger.error('The selected option is not available!')
+            logger.error('The selected option is not available')
     except Exception:
         logger.exception("Fatal error in main loop")
     finally:
+        # Writes again the Spotify environment with the new token.
+        utils.write_json_file(spotify_env_file, spotify_env)
+
         elapsed_time = time.time() - start_time
         elapsed_delta = datetime.timedelta(seconds=elapsed_time)
         logger.info('Total elapsed time of execution: %s' % (elapsed_delta, ))
