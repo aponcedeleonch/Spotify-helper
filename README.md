@@ -124,6 +124,6 @@ I copy-pasted the following in a web browser:
 
 **Valuable output:** `user_code`
 
-General instructions from Spotify: https://developer.spotify.com/documentation/general/guides/authorization-guide/
-
 3. Now we can exchange the obtained `user_code` in the last step for a token to make requests to the Spotify API. The functions for this exchange is already implemented in the code of this repository in the file `spotify_api.py`. Now you can put all the **Valuable output** you obtained in a JSON file and run the available commands of the script. The format of the JSON file is specified at the [Requirements section](#requirements)
+
+General instructions from Spotify: https://developer.spotify.com/documentation/general/guides/authorization-guide/
