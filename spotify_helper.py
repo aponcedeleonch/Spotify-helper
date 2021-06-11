@@ -69,8 +69,9 @@ def compare_saved_songs(all_songs_file, results_dir, spotify_env_file):
     last_saved_time = datetime.datetime(year=1994, month=1, day=1)
     for diff_path in diff_songs_path:
         diff_file = diff_path.split('/')[-1]
-        saved_time = datetime.datetime.strptime(diff_file,
-                                                'diff_songs_%Y-%m-%d-%H:%M.json')
+        saved_time = datetime.datetime.strptime(
+                        diff_file, 'diff_songs_%Y-%m-%d-%H:%M.json'
+                    )
         logger.debug('Checking date of file: %s' % (diff_path, ))
         if saved_time > last_saved_time:
             last_saved_time = saved_time
@@ -437,14 +438,16 @@ def spotify_helper(action, results_dir, spotify_env_file, refresh_time,
 
 if __name__ == "__main__":
     args = parse_args()
-    spotify_helper(action=args.action,
-                    spotify_env_file=args.spotify_env_file,
-                    log_level=args.log_level,
-                    log_file=args.log_file,
-                    results_dir=args.results_dir,
-                    all_songs_file=args.all_songs_file,
-                    refresh_time=args.refresh_time,
-                    repeat_artist=args.repeat_artist,
-                    num_play_songs=args.num_play_songs,
-                    sleep_time=args.sleep_time,
-                    not_wait_songs_to_play=args.not_wait_songs_to_play)
+    spotify_helper(
+        action=args.action,
+        spotify_env_file=args.spotify_env_file,
+        log_level=args.log_level,
+        log_file=args.log_file,
+        results_dir=args.results_dir,
+        all_songs_file=args.all_songs_file,
+        refresh_time=args.refresh_time,
+        repeat_artist=args.repeat_artist,
+        num_play_songs=args.num_play_songs,
+        sleep_time=args.sleep_time,
+        not_wait_songs_to_play=args.not_wait_songs_to_play
+    )

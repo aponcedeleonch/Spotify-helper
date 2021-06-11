@@ -30,8 +30,8 @@ def security_get_token(spotify_env):
     # Getting my own credentials encoded into Base64
     encode_credentials = '%s:%s' % (spotify_env['client_id'],
                                     spotify_env['client_secret'])
-    encoded_credentials_bytes = base64.b64encode(encode_credentials.encode('ascii'))
-    encoded_credentials_message = encoded_credentials_bytes.decode('ascii')
+    encoded_cred_bytes = base64.b64encode(encode_credentials.encode('ascii'))
+    encoded_credentials_message = encoded_cred_bytes.decode('ascii')
 
     headers = {
       'Authorization': 'Basic %s' % (encoded_credentials_message, )
@@ -83,8 +83,8 @@ def security_refresh_token(spotify_env):
     # Getting my own credentials encoded into Base64
     encode_credentials = '%s:%s' % (spotify_env['client_id'],
                                     spotify_env['client_secret'])
-    encoded_credentials_bytes = base64.b64encode(encode_credentials.encode('ascii'))
-    encoded_credentials_message = encoded_credentials_bytes.decode('ascii')
+    encoded_cred_bytes = base64.b64encode(encode_credentials.encode('ascii'))
+    encoded_credentials_message = encoded_cred_bytes.decode('ascii')
 
     headers = {
       'Authorization': 'Basic %s' % (encoded_credentials_message, )
@@ -137,7 +137,9 @@ def get_list_playlists(spotify_env):
         security_refresh_token(spotify_env)
 
     # Builds the request
-    url = "https://api.spotify.com/v1/users/%s/playlists" % (spotify_env['spotify_user_id'], )
+    url = "https://api.spotify.com/v1/users/%s/playlists" % (
+            spotify_env['spotify_user_id'],
+            )
     headers = {
       'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
     }
@@ -163,7 +165,9 @@ def get_list_playlists(spotify_env):
         url = response_dic['next']
         # Append this chunk to what we already have
         playlists += response_dic['items']
-    logger.info('Finished querying for playlists!. Total: %d' % (len(playlists), ))
+    logger.info(
+        'Finished querying for playlists!. Total: %d' % (len(playlists), )
+    )
 
     # Only get the data relevant to us
     summary_of_playlists = []
@@ -174,7 +178,9 @@ def get_list_playlists(spotify_env):
             'num_of_tracks': playlist['tracks']['total']
         }
         summary_of_playlists.append(playlist_summary)
-    logger.info('Finished parsing the playlists! Total: %d' % (len(summary_of_playlists, )))
+    logger.info(
+        'Finished parsing the playlists! Total: %d' % (len(summary_of_playlists), )
+    )
 
     return summary_of_playlists
 
@@ -348,7 +354,7 @@ def get_recently_played(spotify_env, number_songs):
             response_dic = response.json()
         else:
             logger.error(response.content)
-            raise ValueError('Something went wrong getting recently played songs!')
+            raise ValueError('Something went wrong getting recently played songs')
 
         new_songs = response_dic['items']
         logger.debug('New songs gotten: %d' % (len(new_songs), ))
