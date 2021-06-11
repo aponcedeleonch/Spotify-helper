@@ -118,9 +118,7 @@ Example:
 
 I copy-pasted the following in a web browser:
 
-> ```
-https://accounts.spotify.com/authorize?client_id=<my_client_id>&response_type=code&redirect_uri=https://github.com/aponcedeleonch/fetch_spotify&scope=playlist-modify-private%20playlist-modify-public%20playlist-read-private%20playlist-read-collaborative%20user-library-read%20user-modify-playback-state%20user-read-playback-state
-```
+> ```https://accounts.spotify.com/authorize?client_id=<my_client_id>&response_type=code&redirect_uri=https://github.com/aponcedeleonch/fetch_spotify&scope=playlist-modify-private%20playlist-modify-public%20playlist-read-private%20playlist-read-collaborative%20user-library-read%20user-modify-playback-state%20user-read-playback-state```
 
 *Note:* I used Postman to format the URL above.
 
