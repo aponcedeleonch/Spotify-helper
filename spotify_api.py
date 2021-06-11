@@ -8,19 +8,18 @@ def security_get_token(spotify_env):
     '''
     Exchanges the user_code authorized by the user by a set of tokens.
     N.B. This request should only be used once!
-    The user codes are only valid one time, after that use 'refresh_access_token'
+    The user codes are only valid one time, after that
+    use 'security_refresh_token'.
     Reference: https://developer.spotify.com/documentation/general/guides/authorization-guide/
 
     Parameters
     ----------
-    logger: logging object
-        logger of the script
     spotify_env : dict
         Dictionary containing own Spotify keys, tokens, etc.
     '''
-    # Building the request
     logger = logging.getLogger('spotify')
     logger.info('Getting the token for API')
+    # Building the request
     url = 'https://accounts.spotify.com/api/token'
     payload = {
         'grant_type': 'authorization_code',
@@ -62,13 +61,11 @@ def security_get_token(spotify_env):
 def security_refresh_token(spotify_env):
     '''
     Refreshes the current Spotify 'access_token' using the 'refresh_token'
-    If it's the first time getting the tokens use 'get_all_tokens'
+    If it's the first time getting the tokens use 'security_get_token'
     Reference: https://developer.spotify.com/documentation/general/guides/authorization-guide/
 
     Parameters
     ----------
-    logger: logging object
-        logger of the script
     spotify_env : dict
         Dictionary containing own Spotify keys, tokens, etc.
     '''
@@ -117,8 +114,6 @@ def get_list_playlists(spotify_env):
 
     Parameters
     ----------
-    logger: logging object
-        logger of the script
     spotify_env : dict
         Dictionary containing own Spotify keys, tokens, etc.
 
@@ -192,15 +187,13 @@ def get_saved_tracks(spotify_env):
 
     Parameters
     ----------
-    logger: logging object
-        logger of the script
     spotify_env : dict
         Dictionary containing own Spotify keys, tokens, etc.
 
     Returns
     -------
-    list of dicts
-        The parsed response from the API with the relevant information
+    dict
+        Songs that are stored in our libary with only the relevant information.
     '''
     logger = logging.getLogger('spotify')
     logger.info('Getting saved tracks!')
@@ -219,7 +212,7 @@ def get_saved_tracks(spotify_env):
       'Authorization': 'Bearer %s' % (spotify_env['access_token'], )
     }
 
-    # The API does not return the complete list of playlists in one go
+    # The API does not return the complete list of songs in one go
     # It keeps returning offsets and the url to the next chunk.
     # At the final offset there's a parameter set to none
     tracks = []
@@ -263,6 +256,17 @@ def get_saved_tracks(spotify_env):
 
 
 def add_song_to_queue(spotify_env, uri_song):
+    '''
+    Add a song to the queue of the active device.
+    Reference: https://developer.spotify.com/documentation/web-api/reference/#category-player
+
+    Parameters
+    ----------
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
+    uri_song: string
+        The uri of the song to play
+    '''
     logger = logging.getLogger('spotify')
     logger.info('Adding song to queue!. URI: %s' % (uri_song, ))
 
@@ -300,6 +304,22 @@ def add_song_to_queue(spotify_env, uri_song):
 
 
 def get_recently_played(spotify_env, number_songs):
+    '''
+    Gets all the songs that have recently played from Spotify history.
+    Reference: https://developer.spotify.com/documentation/web-api/reference/#category-player
+
+    Parameters
+    ----------
+    spotify_env : dict
+        Dictionary containing own Spotify keys, tokens, etc.
+    number_songs : int
+        Number of songs to look back in history. Max: 50
+
+    Returns
+    -------
+    dict
+        The songs that have recently played
+    '''
     logger = logging.getLogger('spotify')
     logger.info('Checking recently played songs!')
 
