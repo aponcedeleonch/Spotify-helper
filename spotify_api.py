@@ -266,6 +266,10 @@ def add_song_to_queue(spotify_env, uri_song):
         Dictionary containing own Spotify keys, tokens, etc.
     uri_song: string
         The uri of the song to play
+
+    Returns
+    -------
+    None
     '''
     logger = logging.getLogger('spotify')
     logger.info('Adding song to queue!. URI: %s' % (uri_song, ))
